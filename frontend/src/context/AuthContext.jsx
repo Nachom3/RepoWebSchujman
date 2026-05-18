@@ -1,51 +1,46 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import axios from 'axios'
-
-const AuthContext = createContext(null)
-const API_BASE_URL = 'http://localhost:5000/api/auth'
+import { useEffect, useState } from 'react'
+import { api } from '../lib/api'
+import { AuthContext } from './auth-context'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(localStorage.getItem('token') || '')
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '')
   const [loading, setLoading] = useState(true)
 
-  const authHeaders = useMemo(() => {
-    if (!token) return {}
-    return {
-      Authorization: `Bearer ${token}`,
-    }
-  }, [token])
-
   useEffect(() => {
+    let cancelled = false
+
     async function bootstrapSession() {
       if (!token) {
         setLoading(false)
         return
       }
-
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/me`, {
-          headers: authHeaders,
-        })
-        setUser(data)
+        const { data } = await api.get('/auth/me')
+        if (!cancelled) setUser(data)
       } catch {
-        localStorage.removeItem('token')
-        setToken('')
-        setUser(null)
+        if (!cancelled) {
+          localStorage.removeItem('token')
+          setToken('')
+          setUser(null)
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     bootstrapSession()
-  }, [authHeaders, token])
+    return () => {
+      cancelled = true
+    }
+  }, [token])
 
   async function register(email, password) {
-    await axios.post(`${API_BASE_URL}/register`, { email, password })
+    await api.post('/auth/register', { email, password })
   }
 
   async function login(email, password) {
-    const { data } = await axios.post(`${API_BASE_URL}/login`, { email, password })
+    const { data } = await api.post('/auth/login', { email, password })
     localStorage.setItem('token', data.token)
     setToken(data.token)
     setUser(data.user)
@@ -68,13 +63,4 @@ export function AuthProvider({ children }) {
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-
-  return context
 }

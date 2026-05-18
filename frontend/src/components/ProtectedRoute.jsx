@@ -1,13 +1,15 @@
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/auth-context'
 
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-emerald-50 text-slate-900 grid place-items-center">
-        <p className="text-sm font-medium">Cargando sesion...</p>
+      <div className="min-h-screen grid place-items-center bg-surface text-surface-foreground">
+        <p className="text-sm font-medium text-muted-foreground">
+          Cargando sesión...
+        </p>
       </div>
     )
   }

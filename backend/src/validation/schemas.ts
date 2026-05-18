@@ -1,0 +1,17 @@
+import { z } from "zod";
+
+export const registerBodySchema = z.object({
+  email: z.string().trim().toLowerCase().email("Invalid email format"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password too long"),
+});
+
+export const loginBodySchema = z.object({
+  email: z.string().trim().toLowerCase().email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type RegisterBody = z.infer<typeof registerBodySchema>;
+export type LoginBody = z.infer<typeof loginBodySchema>;

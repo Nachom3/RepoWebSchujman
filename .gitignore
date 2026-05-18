@@ -1,6 +1,17 @@
 node_modules
 dist
+build
 *.log
 .env
 .env.local
 .DS_Store
+
+# Prisma local DB (migrations are committed, dev.db is not)
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
+# Backend build
+backend/dist
+
+# Frontend env (also covered by .env above, listed for clarity)
+frontend/.env

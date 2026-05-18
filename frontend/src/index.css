@@ -1,45 +1,78 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap');
+@theme {
+  --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
 
-:root {
-	font-family: 'Outfit', sans-serif;
+  --color-surface: oklch(99% 0.005 250);
+  --color-surface-foreground: oklch(20% 0.02 250);
+  --color-surface-muted: oklch(96% 0.01 250);
+
+  --color-primary: oklch(58% 0.13 200);
+  --color-primary-foreground: oklch(99% 0.005 200);
+  --color-primary-hover: oklch(52% 0.13 200);
+
+  --color-accent: oklch(72% 0.17 75);
+  --color-accent-foreground: oklch(20% 0.02 75);
+  --color-accent-hover: oklch(66% 0.17 75);
+
+  --color-muted: oklch(96% 0.01 250);
+  --color-muted-foreground: oklch(45% 0.02 250);
+
+  --color-border: oklch(90% 0.01 250);
+  --color-border-strong: oklch(82% 0.015 250);
+  --color-ring: oklch(58% 0.13 200);
+
+  --color-danger: oklch(60% 0.22 25);
+  --color-danger-foreground: oklch(99% 0.005 25);
+  --color-danger-soft: oklch(96% 0.04 25);
+  --color-danger-soft-foreground: oklch(40% 0.18 25);
+
+  --color-success: oklch(65% 0.16 145);
+  --color-success-foreground: oklch(99% 0.005 145);
+
+  --color-night: oklch(22% 0.03 260);
+  --color-night-foreground: oklch(95% 0.01 260);
+  --color-night-muted: oklch(30% 0.03 260);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
 }
 
-body {
-	margin: 0;
-	min-height: 100vh;
-	color: #0f172a;
-	background:
-		radial-gradient(circle at 20% 20%, rgba(20, 184, 166, 0.2), transparent 35%),
-		radial-gradient(circle at 80% 10%, rgba(245, 158, 11, 0.25), transparent 30%),
-		linear-gradient(140deg, #f8fafc 0%, #e2e8f0 100%);
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--color-surface-foreground);
+    background:
+      radial-gradient(circle at 20% 20%, color-mix(in oklch, var(--color-primary) 18%, transparent), transparent 35%),
+      radial-gradient(circle at 80% 10%, color-mix(in oklch, var(--color-accent) 22%, transparent), transparent 30%),
+      linear-gradient(140deg, var(--color-surface) 0%, var(--color-muted) 100%);
+  }
+
+  #root {
+    min-height: 100vh;
+  }
 }
 
-#root {
-	min-height: 100vh;
-}
+@layer components {
+  .auth-grid-bg {
+    position: relative;
+  }
 
-.auth-surface {
-	position: relative;
-}
-
-.auth-surface::before {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background-image: linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
-	background-size: 22px 22px;
-	pointer-events: none;
-}
-
-.auth-card {
-	position: relative;
-	z-index: 1;
-	background: rgba(255, 255, 255, 0.78);
-	border: 1px solid rgba(148, 163, 184, 0.25);
-	backdrop-filter: blur(8px);
+  .auth-grid-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(color-mix(in oklch, var(--color-surface-foreground) 4%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklch, var(--color-surface-foreground) 4%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+  }
 }
