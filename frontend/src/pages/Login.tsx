@@ -9,15 +9,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function handleSubmit({ email, password }: { email: string; password: string }) {
+  async function handleSubmit({ email, password }) {
     setError('')
     setLoading(true)
     try {
       await login(email, password)
       navigate('/dashboard')
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } }
-      setError(axiosErr.response?.data?.error || 'No se pudo iniciar sesión.')
+    } catch (err) {
+      
+      setError(err.response?.data?.message || err.response?.data?.error || 'No se pudo iniciar sesión.')
     } finally {
       setLoading(false)
     }
@@ -25,9 +25,13 @@ export default function Login() {
 
   return (
     <AuthForm
-      eyebrow="Acceso"
-      title="Bienvenido de vuelta"
-      subtitle="Iniciá sesión para ingresar al dashboard."
+      eyebrow="Bienvenido de vuelta"
+      title={
+        <>
+          Ingresar a Obra<span className="text-primary">CTRL</span>
+        </>
+      }
+      subtitle="Accedé a tu panel para gestionar obras y materiales."
       submitLabel="Iniciar sesión"
       loadingLabel="Ingresando..."
       onSubmit={handleSubmit}
@@ -38,8 +42,8 @@ export default function Login() {
       footer={
         <>
           ¿No tenés cuenta?{' '}
-          <Link to="/register" className="font-semibold text-primary hover:text-primary-hover">
-            Registrate
+          <Link to="/register" className="font-semibold text-primary hover:underline underline-offset-2 hover:text-primary-hover transition-all">
+            Registrate gratis
           </Link>
         </>
       }
