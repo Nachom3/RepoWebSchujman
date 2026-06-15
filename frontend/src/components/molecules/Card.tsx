@@ -1,4 +1,4 @@
-import { cva } from 'class-variance-authority'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/cn'
 
 const cardVariants = cva('rounded-3xl border shadow-xl', {
@@ -22,7 +22,17 @@ const cardVariants = cva('rounded-3xl border shadow-xl', {
   },
 })
 
-export function Card({ surface, padding, className, children, ...props }) {
+interface CardProps
+  extends React.HTMLAttributes<HTMLElement>,
+    VariantProps<typeof cardVariants> {}
+
+export function Card({
+  surface,
+  padding,
+  className,
+  children,
+  ...props
+}: Readonly<CardProps>) {
   return (
     <section
       className={cn(cardVariants({ surface, padding }), className)}

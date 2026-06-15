@@ -13,11 +13,11 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route
         path="/dashboard"
-        element={(
+        element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
-        )}
+        }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

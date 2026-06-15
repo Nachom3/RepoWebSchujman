@@ -1,4 +1,4 @@
-import { cva } from 'class-variance-authority'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/cn'
 
 const alertVariants = cva(
@@ -17,7 +17,19 @@ const alertVariants = cva(
   },
 )
 
-export function Alert({ className, variant, children, role = 'alert', ...props }) {
+interface AlertProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof alertVariants> {
+  role?: string
+}
+
+export function Alert({
+  className,
+  variant,
+  children,
+  role = 'alert',
+  ...props
+}: Readonly<AlertProps>) {
   return (
     <div
       role={role}

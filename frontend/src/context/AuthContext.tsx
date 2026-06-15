@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import { AuthContext } from './auth-context'
+import { AuthContext, type PublicUser } from './auth-context'
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+interface AuthProviderProps {
+  readonly children: React.ReactNode
+}
+
+export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
+  const [user, setUser] = useState<PublicUser | null>(null)
   const [token, setToken] = useState(() => localStorage.getItem('token') || '')
   const [loading, setLoading] = useState(true)
 
@@ -35,11 +39,11 @@ export function AuthProvider({ children }) {
     }
   }, [token])
 
-  async function register(email, password) {
+  async function register(email: string, password: string) {
     await api.post('/auth/register', { email, password })
   }
 
-  async function login(email, password) {
+  async function login(email: string, password: string) {
     const { data } = await api.post('/auth/login', { email, password })
     localStorage.setItem('token', data.token)
     setToken(data.token)

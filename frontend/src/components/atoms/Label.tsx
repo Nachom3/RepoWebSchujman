@@ -1,6 +1,8 @@
 import { cn } from '../../lib/cn'
 
-export function Label({ className, children, ...props }) {
+interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {}
+
+export function Label({ className, children, ...props }: Readonly<LabelProps>) {
   return (
     <label
       className={cn(

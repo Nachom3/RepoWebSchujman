@@ -9,14 +9,15 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function handleSubmit({ email, password }) {
+  async function handleSubmit({ email, password }: { email: string; password: string }) {
     setError('')
     setLoading(true)
     try {
       await register(email, password)
       navigate('/login')
-    } catch (err) {
-      setError(err.response?.data?.error || 'No se pudo crear la cuenta.')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } }
+      setError(axiosErr.response?.data?.error || 'No se pudo crear la cuenta.')
     } finally {
       setLoading(false)
     }

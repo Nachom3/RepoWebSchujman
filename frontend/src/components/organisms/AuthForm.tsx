@@ -4,6 +4,21 @@ import { FormField } from '../molecules/FormField'
 import { Button } from '../atoms/Button'
 import { Alert } from '../atoms/Alert'
 
+interface AuthFormProps {
+  readonly eyebrow?: string
+  readonly title: string
+  readonly subtitle?: string
+  readonly submitLabel: string
+  readonly loadingLabel?: string
+  readonly onSubmit: (form: { email: string; password: string }) => Promise<void>
+  readonly error?: string
+  readonly loading?: boolean
+  readonly footer?: React.ReactNode
+  readonly accent?: 'primary' | 'accent'
+  readonly passwordMinLength?: number
+  readonly passwordAutoComplete?: string
+}
+
 export function AuthForm({
   eyebrow,
   title,
@@ -17,14 +32,14 @@ export function AuthForm({
   accent = 'primary',
   passwordMinLength = 8,
   passwordAutoComplete = 'current-password',
-}) {
+}: Readonly<AuthFormProps>) {
   const [form, setForm] = useState({ email: '', password: '' })
 
-  function handleChange(event) {
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await onSubmit(form)
   }
