@@ -12,6 +12,28 @@ enum UserRole {
   OPERADOR
 }
 
+enum ClientStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum OrderStatus {
+  PENDIENTE
+  APROBADA
+  COMPLETADA
+  CANCELADA
+}
+
+enum TruckStatus {
+  DISPONIBLE
+  EN_RECORRIDO
+}
+
+enum MovementTipo {
+  DEBITO
+  CREDITO
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -31,7 +53,7 @@ model Client {
   contacto     String?
   condicionIVA String?
   saldo        Float    @default(0)
-  status       String   @default("active")
+  status       ClientStatus @default(ACTIVE)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -40,43 +62,64 @@ model Client {
 }
 
 model CuentaCorrienteMovimiento {
-  id        Int      @id @default(autoincrement())
-  tipo      String
+  id        Int          @id @default(autoincrement())
+  tipo      MovementTipo @default(DEBITO)
   monto     Float
-  fecha     DateTime @default(now())
+  fecha     DateTime     @default(now())
   referencia String?
   clientId  Int
-  client    Client   @relation(fields: [clientId], references: [id])
+  client    Client       @relation(fields: [clientId], references: [id])
 }
 
 model Formula {
-  id       Int    @id @default(autoincrement())
-  name     String
-  recipe   String?
-  orders   Order[]
+  id                   Int               @id @default(autoincrement())
+  name                 String
+  recipe               String?
+  pricePerCubicMeter   Float             @default(0)
+  orders               Order[]
+  materials            FormulaMaterial[]
 }
 
 model Order {
-  id           Int      @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   clientId     Int
   formulaId    Int
+  truckId      Int?
   quantity     Float
-  status       String   @default("pending")
+  priceSnapshot Float?
+  status       OrderStatus @default(PENDIENTE)
+  createdAt    DateTime    @default(now())
   deliveryDate DateTime?
-  client       Client   @relation(fields: [clientId], references: [id])
-  formula      Formula  @relation(fields: [formulaId], references: [id])
+  completedAt  DateTime?
+  client       Client      @relation(fields: [clientId], references: [id])
+  formula      Formula     @relation(fields: [formulaId], references: [id])
+  truck        Truck?      @relation(fields: [truckId], references: [id])
 }
 
 model SiloStock {
-  id       Int    @id @default(autoincrement())
-  material String
-  quantity Float
-  unit     String
+  id        Int               @id @default(autoincrement())
+  material  String
+  quantity  Float
+  unit      String
+  alertMin  Float             @default(0)
+  materials FormulaMaterial[]
 }
 
 model Truck {
-  id       Int    @id @default(autoincrement())
-  patente  String
+  id       Int         @id @default(autoincrement())
+  patente  String      @unique
   capacity Float
-  status   String @default("active")
+  status   TruckStatus @default(DISPONIBLE)
+  orders   Order[]
+}
+
+model FormulaMaterial {
+  id              Int       @id @default(autoincrement())
+  formulaId       Int
+  siloStockId     Int
+  kgPerCubicMeter Float
+  formula         Formula   @relation(fields: [formulaId], references: [id])
+  siloStock       SiloStock @relation(fields: [siloStockId], references: [id])
+
+  @@unique([formulaId, siloStockId])
 }

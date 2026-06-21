@@ -5,6 +5,11 @@ import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
 import { clientsRouter } from "./routes/clients";
 import { clientMovementsRouter } from "./routes/clientMovements";
+import { ordersRouter } from "./routes/orders";
+import { formulasRouter } from "./routes/formulas";
+import { silosRouter } from "./routes/silos";
+import { trucksRouter } from "./routes/trucks";
+import { panelRouter } from "./routes/panel";
 import { disconnectPrisma } from "./db/prisma";
 
 const app = express();
@@ -21,6 +26,16 @@ app.use("/clients", clientsRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/clients/:id/movements", clientMovementsRouter);
 app.use("/api/clients/:id/movements", clientMovementsRouter);
+app.use("/orders", ordersRouter);
+app.use("/api/orders", ordersRouter);
+app.use("/formulas", formulasRouter);
+app.use("/api/formulas", formulasRouter);
+app.use("/silos", silosRouter);
+app.use("/api/silos", silosRouter);
+app.use("/trucks", trucksRouter);
+app.use("/api/trucks", trucksRouter);
+app.use("/panel", panelRouter);
+app.use("/api/panel", panelRouter);
 
 app.get("/", (_req: Request, res: Response) => {
   res.send("Backend Auth API Running");

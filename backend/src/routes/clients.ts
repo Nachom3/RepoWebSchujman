@@ -188,7 +188,7 @@ clientsRouter.delete(
     try {
       const client = await prisma.client.update({
         where: { id },
-        data: { status: "disabled" },
+        data: { status: "DISABLED" },
         select: {
           id: true,
           cuit: true,

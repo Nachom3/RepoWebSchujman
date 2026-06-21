@@ -8,6 +8,11 @@ import NotFound from "@/pages/NotFound"
 import Register from "@/pages/Register"
 import Clientes from "@/pages/Clientes"
 import ClienteDetail from "@/pages/ClienteDetail"
+import Pedidos from "@/pages/Pedidos"
+import PedidoDetailPage from "@/pages/PedidoDetail"
+import Inventario from "@/pages/Inventario"
+import Flota from "@/pages/Flota"
+import Panel from "@/pages/Panel"
 
 function App() {
   return (
@@ -36,6 +41,46 @@ function App() {
         element={
           <ProtectedRoute>
             <ClienteDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pedidos"
+        element={
+          <ProtectedRoute>
+            <Pedidos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pedidos/:id"
+        element={
+          <ProtectedRoute>
+            <PedidoDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventario"
+        element={
+          <ProtectedRoute>
+            <Inventario />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/flota"
+        element={
+          <ProtectedRoute>
+            <Flota />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/panel"
+        element={
+          <ProtectedRoute>
+            <Panel />
           </ProtectedRoute>
         }
       />
