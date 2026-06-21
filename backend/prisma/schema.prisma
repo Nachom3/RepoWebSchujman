@@ -57,8 +57,9 @@ model Client {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  movements CuentaCorrienteMovimiento[]
-  orders    Order[]
+  movements      CuentaCorrienteMovimiento[]
+  orders         Order[]
+  portalSessions PortalSession[]
 }
 
 model CuentaCorrienteMovimiento {
@@ -90,7 +91,9 @@ model Order {
   status       OrderStatus @default(PENDIENTE)
   createdAt    DateTime    @default(now())
   deliveryDate DateTime?
+  scheduledDate DateTime?
   completedAt  DateTime?
+  obraAddress  String?
   client       Client      @relation(fields: [clientId], references: [id])
   formula      Formula     @relation(fields: [formulaId], references: [id])
   truck        Truck?      @relation(fields: [truckId], references: [id])
@@ -122,4 +125,13 @@ model FormulaMaterial {
   siloStock       SiloStock @relation(fields: [siloStockId], references: [id])
 
   @@unique([formulaId, siloStockId])
+}
+
+model PortalSession {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id])
 }

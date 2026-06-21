@@ -3,6 +3,7 @@ import prismaPkg from "@prisma/client";
 const { Prisma } = prismaPkg;
 import { prisma } from "../db/prisma";
 import { authenticateToken } from "../middleware/auth";
+import { requireRole } from "../middleware/requireRole";
 import { validateBody } from "../middleware/validate";
 import {
   createSiloBodySchema,
@@ -110,6 +111,7 @@ silosRouter.patch(
 
 silosRouter.delete(
   "/:id",
+  requireRole("ADMIN"),
   async (
     req: Request<{ id: string }, SiloResponse | ApiErrorResponse>,
     res: Response<SiloResponse | ApiErrorResponse>,

@@ -3,6 +3,7 @@ import prismaPkg from "@prisma/client";
 const { Prisma } = prismaPkg;
 import { prisma } from "../db/prisma";
 import { authenticateToken } from "../middleware/auth";
+import { requireRole } from "../middleware/requireRole";
 import { validateBody } from "../middleware/validate";
 import {
   createTruckBodySchema,
@@ -156,6 +157,7 @@ trucksRouter.post(
 
 trucksRouter.delete(
   "/:id",
+  requireRole("ADMIN"),
   async (
     req: Request<{ id: string }, TruckResponse | ApiErrorResponse>,
     res: Response<TruckResponse | ApiErrorResponse>,

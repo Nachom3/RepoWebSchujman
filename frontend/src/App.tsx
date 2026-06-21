@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { PortalGate } from "@/features/portal/components/PortalGate"
 import Dashboard from "@/pages/Dashboard"
 import Landing from "@/pages/Landing"
 import Login from "@/pages/Login"
@@ -13,6 +14,11 @@ import PedidoDetailPage from "@/pages/PedidoDetail"
 import Inventario from "@/pages/Inventario"
 import Flota from "@/pages/Flota"
 import Panel from "@/pages/Panel"
+import Portal from "@/pages/Portal"
+import PortalLogin from "@/pages/PortalLogin"
+import PortalOrders from "@/pages/PortalOrders"
+import PortalNewOrder from "@/pages/PortalNewOrder"
+import PortalTrack from "@/pages/PortalTrack"
 
 function App() {
   return (
@@ -82,6 +88,32 @@ function App() {
           <ProtectedRoute>
             <Panel />
           </ProtectedRoute>
+        }
+      />
+      <Route path="/portal" element={<Portal />} />
+      <Route path="/portal/login" element={<PortalLogin />} />
+      <Route
+        path="/portal/orders"
+        element={
+          <PortalGate>
+            <PortalOrders />
+          </PortalGate>
+        }
+      />
+      <Route
+        path="/portal/orders/new"
+        element={
+          <PortalGate>
+            <PortalNewOrder />
+          </PortalGate>
+        }
+      />
+      <Route
+        path="/portal/orders/:id"
+        element={
+          <PortalGate>
+            <PortalTrack />
+          </PortalGate>
         }
       />
       <Route path="/404" element={<NotFound />} />

@@ -10,6 +10,7 @@ import { formulasRouter } from "./routes/formulas";
 import { silosRouter } from "./routes/silos";
 import { trucksRouter } from "./routes/trucks";
 import { panelRouter } from "./routes/panel";
+import { portalRouter } from "./routes/portal";
 import { disconnectPrisma } from "./db/prisma";
 
 const app = express();
@@ -36,6 +37,7 @@ app.use("/trucks", trucksRouter);
 app.use("/api/trucks", trucksRouter);
 app.use("/panel", panelRouter);
 app.use("/api/panel", panelRouter);
+app.use("/api/portal", portalRouter);
 
 app.get("/", (_req: Request, res: Response) => {
   res.send("Backend Auth API Running");

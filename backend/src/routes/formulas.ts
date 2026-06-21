@@ -3,6 +3,7 @@ import prismaPkg from "@prisma/client";
 const { Prisma } = prismaPkg;
 import { prisma } from "../db/prisma";
 import { authenticateToken } from "../middleware/auth";
+import { requireRole } from "../middleware/requireRole";
 import { validateBody } from "../middleware/validate";
 import {
   createFormulaBodySchema,
@@ -139,6 +140,7 @@ formulasRouter.patch(
 
 formulasRouter.delete(
   "/:id",
+  requireRole("ADMIN"),
   async (
     req: Request<{ id: string }, FormulaResponse | ApiErrorResponse>,
     res: Response<FormulaResponse | ApiErrorResponse>,
