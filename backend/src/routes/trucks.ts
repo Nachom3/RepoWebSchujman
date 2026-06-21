@@ -1,21 +1,33 @@
 import { Router, type Request, type Response } from "express";
-import prismaPkg from "@prisma/client";
-const { Prisma } = prismaPkg;
-import { prisma } from "../db/prisma";
+
 import { authenticateToken } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import {
   createTruckBodySchema,
-  updateTruckBodySchema,
   type CreateTruckBody,
   type UpdateTruckBody,
+  updateTruckBodySchema,
 } from "../validation/truckSchemas";
-import type { TruckResponse, TruckListResponse } from "../types/trucks";
 import type { ApiErrorResponse } from "../types/auth";
+import type { TruckListResponse, TruckResponse } from "../types/trucks";
+import {
+  createTruckUseCase,
+  deleteTruckUseCase,
+  getTruckUseCase,
+  listTrucksUseCase,
+  toggleTruckStatusUseCase,
+  updateTruckUseCase,
+} from "../features/trucks/application/truckUseCases";
+import * as truckRepository from "../features/trucks/infrastructure/truckRepository";
 
 export const trucksRouter = Router();
 
 trucksRouter.use(authenticateToken);
+
+function parseRouteId(value: string): number | null {
+  const id = parseInt(value, 10);
+  return isNaN(id) ? null : id;
+}
 
 trucksRouter.post(
   "/",
@@ -25,19 +37,13 @@ trucksRouter.post(
     res: Response<TruckResponse | ApiErrorResponse>,
   ): Promise<void> => {
     try {
-      const truck = await prisma.truck.create({
-        data: req.body,
-        select: { id: true, patente: true, capacity: true, status: true },
-      });
-      res.status(201).json(truck);
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2002"
-      ) {
+      const result = await createTruckUseCase(truckRepository, req.body);
+      if (!result.ok) {
         res.status(409).json({ error: "Patente already registered" });
         return;
       }
+      res.status(201).json(result.value);
+    } catch (err) {
       console.error("[create truck]", err);
       res.status(500).json({ error: "Server error" });
     }
@@ -50,11 +56,12 @@ trucksRouter.get(
     _req: Request,
     res: Response<TruckListResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const trucks = await prisma.truck.findMany({
-      select: { id: true, patente: true, capacity: true, status: true },
-      orderBy: { patente: "asc" },
-    });
-    res.json(trucks);
+    try {
+      res.json(await listTrucksUseCase(truckRepository));
+    } catch (err) {
+      console.error("[list trucks]", err);
+      res.status(500).json({ error: "Server error" });
+    }
   },
 );
 
@@ -64,20 +71,23 @@ trucksRouter.get(
     req: Request<{ id: string }, TruckResponse | ApiErrorResponse>,
     res: Response<TruckResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
+    const id = parseRouteId(req.params.id);
+    if (id === null) {
       res.status(400).json({ error: "Invalid truck ID" });
       return;
     }
-    const truck = await prisma.truck.findUnique({
-      where: { id },
-      select: { id: true, patente: true, capacity: true, status: true },
-    });
-    if (!truck) {
-      res.status(404).json({ error: "Truck not found" });
-      return;
+
+    try {
+      const result = await getTruckUseCase(truckRepository, id);
+      if (!result.ok) {
+        res.status(404).json({ error: "Truck not found" });
+        return;
+      }
+      res.json(result.value);
+    } catch (err) {
+      console.error("[get truck]", err);
+      res.status(500).json({ error: "Server error" });
     }
-    res.json(truck);
   },
 );
 
@@ -88,33 +98,24 @@ trucksRouter.patch(
     req: Request<{ id: string }, TruckResponse | ApiErrorResponse, UpdateTruckBody>,
     res: Response<TruckResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
+    const id = parseRouteId(req.params.id);
+    if (id === null) {
       res.status(400).json({ error: "Invalid truck ID" });
       return;
     }
+
     try {
-      const truck = await prisma.truck.update({
-        where: { id },
-        data: req.body,
-        select: { id: true, patente: true, capacity: true, status: true },
-      });
-      res.json(truck);
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2025"
-      ) {
-        res.status(404).json({ error: "Truck not found" });
-        return;
-      }
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2002"
-      ) {
+      const result = await updateTruckUseCase(truckRepository, id, req.body);
+      if (!result.ok) {
+        if (result.error === "truck_not_found") {
+          res.status(404).json({ error: "Truck not found" });
+          return;
+        }
         res.status(409).json({ error: "Patente already registered" });
         return;
       }
+      res.json(result.value);
+    } catch (err) {
       console.error("[update truck]", err);
       res.status(500).json({ error: "Server error" });
     }
@@ -127,26 +128,19 @@ trucksRouter.post(
     req: Request<{ id: string }, TruckResponse | ApiErrorResponse>,
     res: Response<TruckResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
+    const id = parseRouteId(req.params.id);
+    if (id === null) {
       res.status(400).json({ error: "Invalid truck ID" });
       return;
     }
 
     try {
-      const truck = await prisma.truck.findUnique({ where: { id } });
-      if (!truck) {
+      const result = await toggleTruckStatusUseCase(truckRepository, id);
+      if (!result.ok) {
         res.status(404).json({ error: "Truck not found" });
         return;
       }
-
-      const newStatus = truck.status === "DISPONIBLE" ? "EN_RECORRIDO" : "DISPONIBLE";
-      const updated = await prisma.truck.update({
-        where: { id },
-        data: { status: newStatus },
-        select: { id: true, patente: true, capacity: true, status: true },
-      });
-      res.json(updated);
+      res.json(result.value);
     } catch (err) {
       console.error("[toggle truck status]", err);
       res.status(500).json({ error: "Server error" });
@@ -160,25 +154,20 @@ trucksRouter.delete(
     req: Request<{ id: string }, TruckResponse | ApiErrorResponse>,
     res: Response<TruckResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
+    const id = parseRouteId(req.params.id);
+    if (id === null) {
       res.status(400).json({ error: "Invalid truck ID" });
       return;
     }
+
     try {
-      const truck = await prisma.truck.delete({
-        where: { id },
-        select: { id: true, patente: true, capacity: true, status: true },
-      });
-      res.json(truck);
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2025"
-      ) {
+      const result = await deleteTruckUseCase(truckRepository, id);
+      if (!result.ok) {
         res.status(404).json({ error: "Truck not found" });
         return;
       }
+      res.json(result.value);
+    } catch (err) {
       console.error("[delete truck]", err);
       res.status(500).json({ error: "Server error" });
     }

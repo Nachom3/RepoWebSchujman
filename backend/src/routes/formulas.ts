@@ -1,28 +1,41 @@
 import { Router, type Request, type Response } from "express";
-import prismaPkg from "@prisma/client";
-const { Prisma } = prismaPkg;
-import { prisma } from "../db/prisma";
+
 import { authenticateToken } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import {
-  createFormulaBodySchema,
-  updateFormulaBodySchema,
   addMaterialBodySchema,
+  createFormulaBodySchema,
+  type AddMaterialBody,
   type CreateFormulaBody,
   type UpdateFormulaBody,
-  type AddMaterialBody,
+  updateFormulaBodySchema,
 } from "../validation/formulaSchemas";
+import type { ApiErrorResponse } from "../types/auth";
 import type {
-  FormulaResponse,
   FormulaDetailResponse,
   FormulaListResponse,
   FormulaMaterialResponse,
+  FormulaResponse,
 } from "../types/formulas";
-import type { ApiErrorResponse } from "../types/auth";
+import {
+  addFormulaMaterialUseCase,
+  createFormulaUseCase,
+  deleteFormulaMaterialUseCase,
+  deleteFormulaUseCase,
+  getFormulaUseCase,
+  listFormulasUseCase,
+  updateFormulaUseCase,
+} from "../features/formulas/application/formulaUseCases";
+import * as formulaRepository from "../features/formulas/infrastructure/formulaRepository";
 
 export const formulasRouter = Router();
 
 formulasRouter.use(authenticateToken);
+
+function parseRouteId(value: string): number | null {
+  const id = parseInt(value, 10);
+  return isNaN(id) ? null : id;
+}
 
 formulasRouter.post(
   "/",
@@ -32,16 +45,7 @@ formulasRouter.post(
     res: Response<FormulaDetailResponse | ApiErrorResponse>,
   ): Promise<void> => {
     try {
-      const formula = await prisma.formula.create({
-        data: req.body,
-        include: {
-          materials: {
-            include: {
-              siloStock: { select: { id: true, material: true, unit: true } },
-            },
-          },
-        },
-      });
+      const formula = await createFormulaUseCase(formulaRepository, req.body);
       res.status(201).json(formula);
     } catch (err) {
       console.error("[create formula]", err);
@@ -56,16 +60,12 @@ formulasRouter.get(
     _req: Request,
     res: Response<FormulaListResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const formulas = await prisma.formula.findMany({
-      select: {
-        id: true,
-        name: true,
-        recipe: true,
-        pricePerCubicMeter: true,
-      },
-      orderBy: { name: "asc" },
-    });
-    res.json(formulas);
+    try {
+      res.json(await listFormulasUseCase(formulaRepository));
+    } catch (err) {
+      console.error("[list formulas]", err);
+      res.status(500).json({ error: "Server error" });
+    }
   },
 );
 
@@ -75,26 +75,23 @@ formulasRouter.get(
     req: Request<{ id: string }, FormulaDetailResponse | ApiErrorResponse>,
     res: Response<FormulaDetailResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
+    const id = parseRouteId(req.params.id);
+    if (id === null) {
       res.status(400).json({ error: "Invalid formula ID" });
       return;
     }
-    const formula = await prisma.formula.findUnique({
-      where: { id },
-      include: {
-        materials: {
-          include: {
-            siloStock: { select: { id: true, material: true, unit: true } },
-          },
-        },
-      },
-    });
-    if (!formula) {
-      res.status(404).json({ error: "Formula not found" });
-      return;
+
+    try {
+      const result = await getFormulaUseCase(formulaRepository, id);
+      if (!result.ok) {
+        res.status(404).json({ error: "Formula not found" });
+        return;
+      }
+      res.json(result.value);
+    } catch (err) {
+      console.error("[get formula]", err);
+      res.status(500).json({ error: "Server error" });
     }
-    res.json(formula);
   },
 );
 
@@ -105,32 +102,20 @@ formulasRouter.patch(
     req: Request<{ id: string }, FormulaDetailResponse | ApiErrorResponse, UpdateFormulaBody>,
     res: Response<FormulaDetailResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
+    const id = parseRouteId(req.params.id);
+    if (id === null) {
       res.status(400).json({ error: "Invalid formula ID" });
       return;
     }
+
     try {
-      const formula = await prisma.formula.update({
-        where: { id },
-        data: req.body,
-        include: {
-          materials: {
-            include: {
-              siloStock: { select: { id: true, material: true, unit: true } },
-            },
-          },
-        },
-      });
-      res.json(formula);
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2025"
-      ) {
+      const result = await updateFormulaUseCase(formulaRepository, id, req.body);
+      if (!result.ok) {
         res.status(404).json({ error: "Formula not found" });
         return;
       }
+      res.json(result.value);
+    } catch (err) {
       console.error("[update formula]", err);
       res.status(500).json({ error: "Server error" });
     }
@@ -143,26 +128,20 @@ formulasRouter.delete(
     req: Request<{ id: string }, FormulaResponse | ApiErrorResponse>,
     res: Response<FormulaResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
+    const id = parseRouteId(req.params.id);
+    if (id === null) {
       res.status(400).json({ error: "Invalid formula ID" });
       return;
     }
+
     try {
-      await prisma.formulaMaterial.deleteMany({ where: { formulaId: id } });
-      const formula = await prisma.formula.delete({
-        where: { id },
-        select: { id: true, name: true, recipe: true, pricePerCubicMeter: true },
-      });
-      res.json(formula);
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2025"
-      ) {
+      const result = await deleteFormulaUseCase(formulaRepository, id);
+      if (!result.ok) {
         res.status(404).json({ error: "Formula not found" });
         return;
       }
+      res.json(result.value);
+    } catch (err) {
       console.error("[delete formula]", err);
       res.status(500).json({ error: "Server error" });
     }
@@ -176,40 +155,28 @@ formulasRouter.post(
     req: Request<{ id: string }, FormulaMaterialResponse | ApiErrorResponse, AddMaterialBody>,
     res: Response<FormulaMaterialResponse | ApiErrorResponse>,
   ): Promise<void> => {
-    const formulaId = parseInt(req.params.id, 10);
-    if (isNaN(formulaId)) {
+    const formulaId = parseRouteId(req.params.id);
+    if (formulaId === null) {
       res.status(400).json({ error: "Invalid formula ID" });
       return;
     }
 
-    const formula = await prisma.formula.findUnique({ where: { id: formulaId } });
-    if (!formula) {
-      res.status(404).json({ error: "Formula not found" });
-      return;
-    }
-
-    const silo = await prisma.siloStock.findUnique({ where: { id: req.body.siloStockId } });
-    if (!silo) {
-      res.status(404).json({ error: "SiloStock not found" });
-      return;
-    }
-
     try {
-      const material = await prisma.formulaMaterial.create({
-        data: { formulaId, ...req.body },
-        include: {
-          siloStock: { select: { id: true, material: true, unit: true } },
-        },
-      });
-      res.status(201).json(material);
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2002"
-      ) {
+      const result = await addFormulaMaterialUseCase(formulaRepository, formulaId, req.body);
+      if (!result.ok) {
+        if (result.error === "formula_not_found") {
+          res.status(404).json({ error: "Formula not found" });
+          return;
+        }
+        if (result.error === "silo_stock_not_found") {
+          res.status(404).json({ error: "SiloStock not found" });
+          return;
+        }
         res.status(409).json({ error: "Material already linked to this formula" });
         return;
       }
+      res.status(201).json(result.value);
+    } catch (err) {
       console.error("[add material]", err);
       res.status(500).json({ error: "Server error" });
     }
@@ -219,29 +186,24 @@ formulasRouter.post(
 formulasRouter.delete(
   "/:id/materials/:materialId",
   async (
-    req: Request<{ id: string; materialId: string }, FormulaResponse | ApiErrorResponse>,
-    res: Response<FormulaResponse | ApiErrorResponse>,
+    req: Request<{ id: string; materialId: string }, void | ApiErrorResponse>,
+    res: Response<void | ApiErrorResponse>,
   ): Promise<void> => {
-    const formulaId = parseInt(req.params.id, 10);
-    const materialId = parseInt(req.params.materialId, 10);
-    if (isNaN(formulaId) || isNaN(materialId)) {
+    const formulaId = parseRouteId(req.params.id);
+    const materialId = parseRouteId(req.params.materialId);
+    if (formulaId === null || materialId === null) {
       res.status(400).json({ error: "Invalid ID" });
       return;
     }
 
     try {
-      await prisma.formulaMaterial.delete({
-        where: { id: materialId },
-      });
-      res.status(204).send();
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2025"
-      ) {
+      const result = await deleteFormulaMaterialUseCase(formulaRepository, materialId);
+      if (!result.ok) {
         res.status(404).json({ error: "Material not found" });
         return;
       }
+      res.status(204).send();
+    } catch (err) {
       console.error("[delete material]", err);
       res.status(500).json({ error: "Server error" });
     }

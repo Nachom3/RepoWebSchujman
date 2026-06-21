@@ -1,5 +1,4 @@
 import { Router, type Request, type Response } from "express";
-import { prisma } from "../db/prisma";
 import { authenticateToken } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import {
@@ -11,8 +10,17 @@ import type {
   MovementListResponse,
 } from "../types/movements";
 import type { ApiErrorResponse } from "../types/auth";
+import {
+  CreateClientMovementUseCase,
+  ListClientMovementsUseCase,
+} from "../features/client-movements/application/clientMovementUseCases";
+import { PrismaClientMovementsRepository } from "../features/client-movements/infrastructure/prismaClientMovementsRepository";
 
 export const clientMovementsRouter = Router({ mergeParams: true });
+
+const clientMovementsRepository = new PrismaClientMovementsRepository();
+const createClientMovementUseCase = new CreateClientMovementUseCase(clientMovementsRepository);
+const listClientMovementsUseCase = new ListClientMovementsUseCase(clientMovementsRepository);
 
 clientMovementsRouter.use(authenticateToken);
 
@@ -29,53 +37,22 @@ clientMovementsRouter.post(
       return;
     }
 
-    const { tipo, monto, referencia } = req.body;
-
     try {
-      const client = await prisma.client.findUnique({
-        where: { id: clientId },
-        select: { id: true, saldo: true },
-      });
-      if (!client) {
+      const result = await createClientMovementUseCase.execute(clientId, req.body);
+      if (result.kind === "client-not-found") {
         res.status(404).json({ error: "Client not found" });
         return;
       }
-
-      if (tipo === "CREDITO" && referencia && /^\d+$/.test(referencia)) {
-        const orderId = parseInt(referencia, 10);
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-          select: { id: true, clientId: true },
-        });
-        if (!order) {
-          res.status(400).json({ error: "Referencia order not found" });
-          return;
-        }
-        if (order.clientId !== clientId) {
-          res.status(400).json({ error: "Referencia order does not belong to this client" });
-          return;
-        }
+      if (result.kind === "reference-order-not-found") {
+        res.status(400).json({ error: "Referencia order not found" });
+        return;
+      }
+      if (result.kind === "reference-order-client-mismatch") {
+        res.status(400).json({ error: "Referencia order does not belong to this client" });
+        return;
       }
 
-      const newSaldo =
-        tipo === "DEBITO" ? client.saldo + monto : client.saldo - monto;
-
-      const [movement] = await prisma.$transaction([
-        prisma.cuentaCorrienteMovimiento.create({
-          data: {
-            tipo,
-            monto,
-            clientId,
-            referencia,
-          },
-        }),
-        prisma.client.update({
-          where: { id: clientId },
-          data: { saldo: newSaldo },
-        }),
-      ]);
-
-      res.status(201).json(movement);
+      res.status(201).json(result.movement);
     } catch (err) {
       console.error("[create movement]", err);
       res.status(500).json({ error: "Server error" });
@@ -95,27 +72,12 @@ clientMovementsRouter.get(
       return;
     }
 
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { id: true },
-    });
-    if (!client) {
+    const result = await listClientMovementsUseCase.execute(clientId);
+    if (result.kind === "client-not-found") {
       res.status(404).json({ error: "Client not found" });
       return;
     }
 
-    const movements = await prisma.cuentaCorrienteMovimiento.findMany({
-      where: { clientId },
-      orderBy: { fecha: "desc" },
-      select: {
-        id: true,
-        tipo: true,
-        monto: true,
-        fecha: true,
-        referencia: true,
-        clientId: true,
-      },
-    });
-    res.json(movements);
+    res.json(result.movements);
   },
 );
