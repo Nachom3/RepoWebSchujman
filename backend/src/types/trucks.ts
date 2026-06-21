@@ -1,4 +1,4 @@
-import type { Truck } from "@prisma/client";
+export type TruckStatus = "DISPONIBLE" | "EN_RECORRIDO";
 
 export type CreateTruckDto = {
   patente: string;
@@ -10,9 +10,11 @@ export type UpdateTruckDto = {
   capacity?: number;
 };
 
-export type TruckResponse = Pick<
-  Truck,
-  "id" | "patente" | "capacity" | "status"
->;
+export type TruckResponse = {
+  id: number;
+  patente: string;
+  capacity: number;
+  status: TruckStatus;
+};
 
 export type TruckListResponse = TruckResponse[];

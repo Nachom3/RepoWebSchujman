@@ -1,5 +1,3 @@
-import type { Formula, FormulaMaterial, SiloStock } from "@prisma/client";
-
 export type CreateFormulaDto = {
   name: string;
   recipe?: string;
@@ -12,19 +10,34 @@ export type UpdateFormulaDto = {
   pricePerCubicMeter?: number;
 };
 
-export type FormulaResponse = Pick<
-  Formula,
-  "id" | "name" | "recipe" | "pricePerCubicMeter"
->;
+export type AddFormulaMaterialDto = {
+  siloStockId: number;
+  kgPerCubicMeter: number;
+};
 
-export type FormulaDetailResponse = Formula & {
-  materials: (FormulaMaterial & {
-    siloStock: Pick<SiloStock, "id" | "material" | "unit">;
-  })[];
+export type FormulaResponse = {
+  id: number;
+  name: string;
+  recipe: string | null;
+  pricePerCubicMeter: number;
+};
+
+export type FormulaMaterialSiloStockResponse = {
+  id: number;
+  material: string;
+  unit: string;
+};
+
+export type FormulaMaterialResponse = {
+  id: number;
+  formulaId: number;
+  siloStockId: number;
+  kgPerCubicMeter: number;
+  siloStock: FormulaMaterialSiloStockResponse;
+};
+
+export type FormulaDetailResponse = FormulaResponse & {
+  materials: FormulaMaterialResponse[];
 };
 
 export type FormulaListResponse = FormulaResponse[];
-
-export type FormulaMaterialResponse = FormulaMaterial & {
-  siloStock: Pick<SiloStock, "id" | "material" | "unit">;
-};

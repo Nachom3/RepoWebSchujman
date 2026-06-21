@@ -1,5 +1,3 @@
-import type { SiloStock } from "@prisma/client";
-
 export type CreateSiloDto = {
   material: string;
   quantity: number;
@@ -14,10 +12,12 @@ export type UpdateSiloDto = {
   alertMin?: number;
 };
 
-export type SiloResponse = Pick<
-  SiloStock,
-  "id" | "material" | "quantity" | "unit" | "alertMin"
-> & {
+export type SiloResponse = {
+  id: number;
+  material: string;
+  quantity: number;
+  unit: string;
+  alertMin: number;
   isLow: boolean;
 };
 
