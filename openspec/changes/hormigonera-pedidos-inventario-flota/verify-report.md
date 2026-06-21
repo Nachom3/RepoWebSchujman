@@ -63,9 +63,9 @@ cd frontend && npx tsc --noEmit →  (no errors)
 | **Delta: Order Field Extensions** | priceSnapshot, completedAt, truckId | schema.prisma Order fields | ✅ COMPLIANT |
 | **Delta: SiloStock Alert Threshold** | alertMin field | schema.prisma SiloStock alertMin | ✅ COMPLIANT |
 | **Delta: Enum Conversions** | ClientStatus, OrderStatus, TruckStatus, MovementTipo | schema.prisma enums | ✅ COMPLIANT |
-| **Delta: Order Payment Recording** | CREDITO with referencia validation | clientMovements.ts DOES NOT validate referencia as Order ID | ❌ UNTESTED (missing validation) |
+| **Delta: Order Payment Recording** | CREDITO with referencia validation | clientMovements.ts now validates: if tipo=CREDITO and referencia matches /^\d+$/, fetches Order and verifies clientId matches path param; returns 400 otherwise | ✅ COMPLIANT (post-verify fix applied) |
 
-**Compliance summary**: 34/35 scenarios compliant (1 missing validation)
+**Compliance summary**: 35/35 scenarios compliant (1 fixed post-verify)
 
 ### Correctness (Static Evidence)
 | Requirement | Status | Notes |
@@ -86,18 +86,17 @@ cd frontend && npx tsc --noEmit →  (no errors)
 | Truck assignment atomic | ✅ Yes | orders.ts PATCH with $transaction. |
 
 ### Issues Found
-**CRITICAL**:
-- Missing validation for Order Payment Recording: `clientMovements.ts` does not validate that `referencia` is a valid Order ID belonging to the client. Spec requires 400 "Order does not belong to this client" or "Order not found". Currently任何 referencia string is accepted.
+**CRITICAL** (all resolved post-verify):
+- ~~Missing validation for Order Payment Recording~~ — **FIXED**: `clientMovements.ts` now validates CREDITO+referencia (numeric) by fetching the Order and verifying ownership. Returns 400 with appropriate error if not found or wrong client.
 
 **WARNING**:
 - Create Order does not check client status (ACTIVE/DISABLED) or formula status (no status field). Spec expects 409 for inactive formula/disabled client. This is a spec deviation but may be intentional (formula has no status field).
 - No automated tests; manual smoke testing only.
 
 **SUGGESTION**:
-- Add order existence and client ownership validation in clientMovements.ts for CREDITO with referencia.
 - Consider adding client.status check in order creation.
 - Add Vitest + RTL for future slices.
 
 ### Verdict
-FAIL
-Critical missing validation for order payment recording violates spec requirement. All other implementations are compliant.
+PASS WITH WARNINGS (post-fix)
+All CRITICAL issues resolved. The fix for order payment recording validation was applied to `clientMovements.ts` after the initial verify pass. Backend compiles cleanly (`tsc --noEmit` passes). Manual smoke testing is the user's responsibility.
