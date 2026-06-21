@@ -7,10 +7,76 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  OPERADOR
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
   passwordHash String
+  role         UserRole @default(ADMIN)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model Client {
+  id           Int      @id @default(autoincrement())
+  cuit         String   @unique
+  razonSocial  String
+  direccion    String?
+  telefono     String?
+  email        String?
+  contacto     String?
+  condicionIVA String?
+  saldo        Float    @default(0)
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  movements CuentaCorrienteMovimiento[]
+  orders    Order[]
+}
+
+model CuentaCorrienteMovimiento {
+  id        Int      @id @default(autoincrement())
+  tipo      String
+  monto     Float
+  fecha     DateTime @default(now())
+  referencia String?
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id])
+}
+
+model Formula {
+  id       Int    @id @default(autoincrement())
+  name     String
+  recipe   String?
+  orders   Order[]
+}
+
+model Order {
+  id           Int      @id @default(autoincrement())
+  clientId     Int
+  formulaId    Int
+  quantity     Float
+  status       String   @default("pending")
+  deliveryDate DateTime?
+  client       Client   @relation(fields: [clientId], references: [id])
+  formula      Formula  @relation(fields: [formulaId], references: [id])
+}
+
+model SiloStock {
+  id       Int    @id @default(autoincrement())
+  material String
+  quantity Float
+  unit     String
+}
+
+model Truck {
+  id       Int    @id @default(autoincrement())
+  patente  String
+  capacity Float
+  status   String @default("active")
 }

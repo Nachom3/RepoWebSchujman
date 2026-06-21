@@ -1,0 +1,8 @@
+export { CTASection } from "./components/CTASection"
+export { Demo } from "./components/Demo"
+export { Features } from "./components/Features"
+export { Footer } from "./components/Footer"
+export { Hero } from "./components/Hero"
+export { Navbar } from "./components/Navbar"
+export { Testimonials } from "./components/Testimonials"
+export { UseCases } from "./components/UseCases"

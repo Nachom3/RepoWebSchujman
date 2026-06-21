@@ -1,25 +1,31 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/auth-context'
-import { AuthForm } from '../components/organisms/AuthForm'
+import { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+
+import { AuthForm, type AuthFormValues } from "@/features/auth"
+import { useAuth } from "@/context/auth-context"
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [serverError, setServerError] = useState("")
 
-  async function handleSubmit({ email, password }) {
-    setError('')
-    setLoading(true)
+  async function handleSubmit({ email, password }: AuthFormValues) {
+    setServerError("")
     try {
       await login(email, password)
-      navigate('/dashboard')
-    } catch (err) {
-      
-      setError(err.response?.data?.message || err.response?.data?.error || 'No se pudo iniciar sesión.')
-    } finally {
-      setLoading(false)
+      toast.success("Sesión iniciada")
+      navigate("/dashboard")
+    } catch (err: unknown) {
+      const axiosErr = err as {
+        response?: { data?: { message?: string; error?: string } }
+      }
+      const message =
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
+        "No se pudo iniciar sesión."
+      setServerError(message)
+      toast.error(message)
     }
   }
 
@@ -35,14 +41,16 @@ export default function Login() {
       submitLabel="Iniciar sesión"
       loadingLabel="Ingresando..."
       onSubmit={handleSubmit}
-      error={error}
-      loading={loading}
-      accent="primary"
+      serverError={serverError}
+      accent="default"
       passwordAutoComplete="current-password"
       footer={
         <>
-          ¿No tenés cuenta?{' '}
-          <Link to="/register" className="font-semibold text-primary hover:underline underline-offset-2 hover:text-primary-hover transition-all">
+          ¿No tenés cuenta?{" "}
+          <Link
+            to="/register"
+            className="font-semibold text-primary hover:underline underline-offset-2 hover:text-primary/80 transition-all"
+          >
             Registrate gratis
           </Link>
         </>

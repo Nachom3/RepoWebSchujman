@@ -3,6 +3,8 @@ import cors from "cors";
 import { env } from "./config/env";
 import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
+import { clientsRouter } from "./routes/clients";
+import { clientMovementsRouter } from "./routes/clientMovements";
 import { disconnectPrisma } from "./db/prisma";
 
 const app = express();
@@ -15,6 +17,10 @@ app.use("/auth", authRouter);
 app.use("/api/auth", authRouter);
 app.use("/health", healthRouter);
 app.use("/api/health", healthRouter);
+app.use("/clients", clientsRouter);
+app.use("/api/clients", clientsRouter);
+app.use("/clients/:id/movements", clientMovementsRouter);
+app.use("/api/clients/:id/movements", clientMovementsRouter);
 
 app.get("/", (_req: Request, res: Response) => {
   res.send("Backend Auth API Running");
