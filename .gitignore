@@ -1,17 +1,52 @@
-node_modules
-dist
-build
-*.log
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Vite cache
+.vite/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Environment files
 .env
 .env.local
-.DS_Store
+.env.*.local
 
-# Prisma local DB (migrations are committed, dev.db is not)
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Playwright MCP artifacts (local screenshots/logs)
+.playwright-mcp/
+
+# Backend
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
-
-# Backend build
 backend/dist
-
-# Frontend env (also covered by .env above, listed for clarity)
-frontend/.env
+backend/node_modules

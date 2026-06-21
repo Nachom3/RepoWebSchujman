@@ -1,5 +1,6 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../context/auth-context'
+import { Navigate } from "react-router-dom"
+
+import { useAuth } from "@/context/auth-context"
 
 interface ProtectedRouteProps {
   readonly children: React.ReactNode
@@ -10,7 +11,7 @@ export default function ProtectedRoute({ children }: Readonly<ProtectedRouteProp
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-surface text-surface-foreground">
+      <div className="min-h-screen grid place-items-center bg-background text-foreground">
         <p className="text-sm font-medium text-muted-foreground">
           Cargando sesión...
         </p>

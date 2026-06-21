@@ -22,7 +22,7 @@ import type {
   ApiErrorResponse,
 } from "../types/auth";
 
-const BCRYPT_ROUNDS = 12;
+const BCRYPT_ROUNDS = 10;
 
 export const authRouter = Router();
 

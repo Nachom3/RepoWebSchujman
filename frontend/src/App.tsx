@@ -1,9 +1,13 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import ProtectedRoute from './components/ProtectedRoute'
-import Landing from './pages/Landing'
-import Dashboard from './pages/Dashboard'
-import Login from './pages/Login'
-import Register from './pages/Register'
+import { Navigate, Route, Routes } from "react-router-dom"
+
+import ProtectedRoute from "@/components/ProtectedRoute"
+import Dashboard from "@/pages/Dashboard"
+import Landing from "@/pages/Landing"
+import Login from "@/pages/Login"
+import NotFound from "@/pages/NotFound"
+import Register from "@/pages/Register"
+import Clientes from "@/pages/Clientes"
+import ClienteDetail from "@/pages/ClienteDetail"
 
 function App() {
   return (
@@ -19,7 +23,24 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/clientes"
+        element={
+          <ProtectedRoute>
+            <Clientes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/clientes/:id"
+        element={
+          <ProtectedRoute>
+            <ClienteDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   )
 }
