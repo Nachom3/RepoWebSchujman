@@ -114,5 +114,13 @@ Interfaz externa para que el cliente pueda consultar información básica sobre 
 * **Historial del proyecto:** resumen de avances, cambios importantes y fechas relevantes.
 
 
-### 21/06 IMPLEMENTAMOS UNA SKILL DE BUENAS PRACTICAS, Y MIGRAMOS A SHADCN PURO. 
-* **Se puede ver la skill en:** .claude/skills/react-feature-architecture
+### 21/06 — Buenas prácticas de arquitectura y migración a shadcn/ui
+
+Se incorporaron skills internas para ordenar la forma de construir el frontend y el backend del proyecto.
+
+* **Frontend:** se migró a **shadcn/ui puro** para usar primitivos reutilizables y evitar componentes armados a mano cuando ya existe una solución estándar. La estructura queda guiada por `react-feature-architecture`, con separación por features, componentes pequeños y una responsabilidad clara por archivo.
+  * Skill: `.agents/skills/react-feature-architecture/SKILL.md`
+* **Backend:** se agregó una skill de buenas prácticas para orientar los cambios hacia una arquitectura **Limpia / Hexagonal / Cebolla**. La idea central es separar la lógica de negocio de frameworks, rutas, base de datos y detalles externos.
+  * Skill: `.agents/skills/backend-clean-architecture/SKILL.md`
+  * Principio: las dependencias deben apuntar hacia el núcleo de dominio; los casos de uso no deberían depender directamente de Express, Prisma ni de detalles de infraestructura.
+  * Objetivo: código más mantenible, testeable y preparado para cambiar UI, base de datos o adaptadores sin reescribir la lógica principal.
