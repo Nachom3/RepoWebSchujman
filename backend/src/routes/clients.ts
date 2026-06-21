@@ -3,6 +3,7 @@ import prismaPkg from "@prisma/client";
 const { Prisma } = prismaPkg;
 import { prisma } from "../db/prisma";
 import { authenticateToken } from "../middleware/auth";
+import { requireRole } from "../middleware/requireRole";
 import { validateBody } from "../middleware/validate";
 import {
   createClientBodySchema,
@@ -176,6 +177,7 @@ clientsRouter.patch(
 
 clientsRouter.delete(
   "/:id",
+  requireRole("ADMIN"),
   async (
     req: Request<{ id: string }, ClientResponse | ApiErrorResponse>,
     res: Response<ClientResponse | ApiErrorResponse>,
@@ -188,7 +190,7 @@ clientsRouter.delete(
     try {
       const client = await prisma.client.update({
         where: { id },
-        data: { status: "disabled" },
+        data: { status: "DISABLED" },
         select: {
           id: true,
           cuit: true,

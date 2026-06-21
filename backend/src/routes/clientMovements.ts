@@ -41,6 +41,22 @@ clientMovementsRouter.post(
         return;
       }
 
+      if (tipo === "CREDITO" && referencia && /^\d+$/.test(referencia)) {
+        const orderId = parseInt(referencia, 10);
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
+          select: { id: true, clientId: true },
+        });
+        if (!order) {
+          res.status(400).json({ error: "Referencia order not found" });
+          return;
+        }
+        if (order.clientId !== clientId) {
+          res.status(400).json({ error: "Referencia order does not belong to this client" });
+          return;
+        }
+      }
+
       const newSaldo =
         tipo === "DEBITO" ? client.saldo + monto : client.saldo - monto;
 

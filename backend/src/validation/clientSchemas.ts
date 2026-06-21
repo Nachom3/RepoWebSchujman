@@ -25,7 +25,7 @@ export const updateClientBodySchema = z.object({
 });
 
 export const listClientsQuerySchema = z.object({
-  status: z.enum(["active", "disabled"]).optional(),
+  status: z.enum(["ACTIVE", "DISABLED"]).optional(),
 });
 
 export type CreateClientBody = z.infer<typeof createClientBodySchema>;
