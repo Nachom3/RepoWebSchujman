@@ -28,7 +28,9 @@ export type OrderRecord = {
   status: OrderStatus;
   createdAt: Date;
   deliveryDate: Date | null;
+  scheduledDate: Date | null;
   completedAt: Date | null;
+  obraAddress: string | null;
 };
 
 export type OrderDetail = OrderRecord & {

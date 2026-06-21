@@ -14,7 +14,9 @@ const orderSelect = {
   status: true,
   createdAt: true,
   deliveryDate: true,
+  scheduledDate: true,
   completedAt: true,
+  obraAddress: true,
 } satisfies prismaPkg.Prisma.OrderSelect;
 
 const orderInclude = {
