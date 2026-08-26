@@ -1,0 +1,24 @@
+-- Backfill Client from old hormigonera schema to constructora schema.
+--
+-- This migration is a NO-OP for fresh databases. The mapping below is kept
+-- as documentation for environments that still hold legacy hormigonera data
+-- (cuit / razonSocial / direccion / telefono / contacto / condicionIVA / saldo)
+-- and need to be migrated into the constructora Client shape
+-- (taxId / name / address / phone / contactName; condicionIVA and saldo dropped).
+--
+-- Old hormigonera Client columns -> New constructora Client columns
+--   cuit          -> taxId
+--   razonSocial   -> name
+--   direccion     -> address
+--   telefono      -> phone
+--   email         -> email
+--   contacto      -> contactName
+--   condicionIVA  -> (dropped)
+--   saldo         -> (dropped)
+--
+-- In this repo the local dev DB and the production DB are being reset against
+-- the new constructora schema, so no rows need to be backfilled here. Keeping
+-- this migration makes the data mapping explicit and reviewable in git history
+-- instead of living only in someone's head.
+
+SELECT 1;

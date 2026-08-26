@@ -1,0 +1,155 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-application-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FRONTEND_DIR: frontend
+  BACKEND_DIR: backend
+  FRONTEND_DEPLOY_PATH: /home/seis/public_html
+  BACKEND_DEPLOY_PATH: /home/seis/servicios
+
+jobs:
+  deploy:
+    name: Build and deploy application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            ${{ env.FRONTEND_DIR }}/package-lock.json
+            ${{ env.BACKEND_DIR }}/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run build
+
+      - name: Build backend
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: npm run build
+
+      - name: Prepare remote deploy directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            set -e
+            mkdir -p "${{ env.FRONTEND_DEPLOY_PATH }}" "${{ env.BACKEND_DEPLOY_PATH }}/dist" "${{ env.BACKEND_DEPLOY_PATH }}/prisma/migrations"
+            test -w "${{ env.FRONTEND_DEPLOY_PATH }}"
+            test -w "${{ env.BACKEND_DEPLOY_PATH }}"
+            find "${{ env.FRONTEND_DEPLOY_PATH }}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            find "${{ env.BACKEND_DEPLOY_PATH }}/dist" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            find "${{ env.BACKEND_DEPLOY_PATH }}/prisma/migrations" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            rm -f "${{ env.BACKEND_DEPLOY_PATH }}/prisma/schema.prisma"
+
+      - name: Copy frontend build to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "${{ env.FRONTEND_DIR }}/dist/*"
+          target: ${{ env.FRONTEND_DEPLOY_PATH }}
+          strip_components: 2
+
+      - name: Copy backend build to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "${{ env.BACKEND_DIR }}/dist/*"
+          target: ${{ env.BACKEND_DEPLOY_PATH }}/dist
+          strip_components: 2
+
+      - name: Copy backend package manifests to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "${{ env.BACKEND_DIR }}/package.json,${{ env.BACKEND_DIR }}/package-lock.json"
+          target: ${{ env.BACKEND_DEPLOY_PATH }}
+          strip_components: 1
+
+      - name: Copy backend Prisma schema to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "${{ env.BACKEND_DIR }}/prisma/schema.prisma"
+          target: ${{ env.BACKEND_DEPLOY_PATH }}/prisma
+          strip_components: 2
+
+      - name: Copy backend Prisma migrations to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "${{ env.BACKEND_DIR }}/prisma/migrations"
+          target: ${{ env.BACKEND_DEPLOY_PATH }}/prisma
+          strip_components: 2
+
+      - name: Install backend deps, sync Prisma and restart backend
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          timeout: 60s
+          command_timeout: 1500s
+          script: |
+            set -eux
+            echo "deploy: start $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            cd "${{ env.BACKEND_DEPLOY_PATH }}"
+            echo "deploy: pwd=$(pwd)"
+            test -f package.json
+            test -f package-lock.json
+            test -f prisma/schema.prisma
+            test -d prisma/migrations
+            echo "deploy: npm ci --omit=dev"
+            npm ci --omit=dev
+            echo "deploy: prisma generate"
+            npx prisma generate
+            echo "deploy: prisma migrate deploy"
+            npx prisma migrate deploy
+            echo "deploy: pm2 restart"
+            pm2 restart servicios
+            pm2 status servicios
+            echo "deploy: done $(date -u +%Y-%m-%dT%H:%M:%SZ)"

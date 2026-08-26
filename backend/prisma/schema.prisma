@@ -1,0 +1,356 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth & access
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  OPERADOR
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(OPERADOR)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Clients (CRM)
+// ---------------------------------------------------------------------------
+
+enum ClientStatus {
+  ACTIVE
+  DISABLED
+}
+
+model Client {
+  id          Int          @id @default(autoincrement())
+  // Tax id. Optional because day-1 may not require CUIT strict for individuals.
+  // We keep it free-form (digits, dashes) but unique when present.
+  taxId       String?      @unique
+  name        String // razón social or full name
+  email       String?
+  phone       String?
+  address     String?
+  contactName String?
+  notes       String?
+  status      ClientStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  projects       Project[]
+  payments       Payment[]
+  portalSessions PortalSession[]
+}
+
+// ---------------------------------------------------------------------------
+// Projects (Obras)
+// ---------------------------------------------------------------------------
+
+enum ProjectType {
+  VIVIENDA
+  LOCAL_COMERCIAL
+  AMPLIACION
+  REMODELACION
+  EDIFICIO
+  GALPON
+  OTRO
+}
+
+enum ProjectStatus {
+  PENDIENTE
+  EN_CURSO
+  PAUSADA
+  FINALIZADA
+  CANCELADA
+}
+
+model Project {
+  id              Int           @id @default(autoincrement())
+  name            String
+  type            ProjectType   @default(OTRO)
+  status          ProjectStatus @default(PENDIENTE)
+  description     String?
+  address         String?
+  clientId        Int
+  estimatedStart  DateTime?
+  estimatedEnd    DateTime?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  progressPercent Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  client    Client            @relation(fields: [clientId], references: [id])
+  budgets   Budget[]
+  tasks     Task[]
+  payments  Payment[]
+  materials ProjectMaterial[]
+  staff     ProjectStaff[]
+}
+
+// ---------------------------------------------------------------------------
+// Budgets (Presupuestos)
+// ---------------------------------------------------------------------------
+
+enum BudgetStatus {
+  BORRADOR
+  ENVIADO
+  APROBADO
+  RECHAZADO
+  VENCIDO
+}
+
+model Budget {
+  id         Int          @id @default(autoincrement())
+  projectId  Int
+  status     BudgetStatus @default(BORRADOR)
+  total      Float        @default(0)
+  notes      String?
+  approvedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  project Project      @relation(fields: [projectId], references: [id])
+  items   BudgetItem[]
+}
+
+model BudgetItem {
+  id          Int    @id @default(autoincrement())
+  budgetId    Int
+  description String
+  category    String // MATERIAL | MANO_OBRA | SERVICIO | MAQUINARIA | TRANSPORTE | OTRO
+  quantity    Float  @default(1)
+  unitPrice   Float  @default(0)
+  total       Float  @default(0)
+
+  budget Budget @relation(fields: [budgetId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Materials & inventory
+// ---------------------------------------------------------------------------
+
+enum MaterialUnit {
+  KG
+  TN
+  M3
+  LT
+  UNIDAD
+  BOLSA
+  M2
+  ML
+  OTRO
+}
+
+model Material {
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  category   String? // estructural, sanitario, eléctrico, etc.
+  unit       MaterialUnit @default(UNIDAD)
+  stock      Float        @default(0)
+  alertMin   Float        @default(0) // mínimo de stock
+  minStock   Float        @default(0) // alias semántico de alertMin
+  unitCost   Float        @default(0)
+  location   String? // depósito, obra, etc.
+  supplierId Int?
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  supplier    Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  assignments ProjectMaterial[]
+}
+
+model ProjectMaterial {
+  id         Int      @id @default(autoincrement())
+  projectId  Int
+  materialId Int
+  quantity   Float    @default(0)
+  unitCost   Float    @default(0)
+  createdAt  DateTime @default(now())
+
+  project  Project  @relation(fields: [projectId], references: [id])
+  material Material @relation(fields: [materialId], references: [id])
+
+  @@unique([projectId, materialId])
+}
+
+// ---------------------------------------------------------------------------
+// Suppliers (Proveedores)
+// ---------------------------------------------------------------------------
+
+model Supplier {
+  id           Int      @id @default(autoincrement())
+  name         String
+  taxId        String?
+  contactName  String?
+  email        String?
+  phone        String?
+  website      String?
+  address      String?
+  category     String? // rubro: corralón, ferretería, sanitarios, etc.
+  paymentTerms String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  materials Material[]
+}
+
+// ---------------------------------------------------------------------------
+// Staff (Personal)
+// ---------------------------------------------------------------------------
+
+enum StaffRole {
+  ARQUITECTO
+  INGENIERO
+  PROJECT_MANAGER
+  SITE_MANAGER
+  CAPATAZ
+  ALBANIL
+  WORKER
+  ELECTRICISTA
+  PLOMERO
+  PINTOR
+  ADMINISTRATIVE
+  OTRO
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+enum ProjectStaffStatus {
+  ASSIGNED
+  ACTIVE
+  FINISHED
+  PAUSED
+}
+
+model StaffMember {
+  id        Int         @id @default(autoincrement())
+  fullName  String
+  role      StaffRole   @default(OTRO)
+  status    StaffStatus @default(ACTIVE)
+  taxId     String? // CUIT/DNI opcional
+  phone     String?
+  email     String?
+  dayRate   Float       @default(0) // costo diario
+  active    Boolean     @default(true) // legacy, mantener sincronizado con status
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  projects ProjectStaff[] @relation("StaffAssignments")
+}
+
+model ProjectStaff {
+  id             Int                @id @default(autoincrement())
+  projectId      Int
+  staffId        Int
+  role           StaffRole          @default(OTRO) // rol específico en la obra
+  responsibility String?
+  status         ProjectStaffStatus @default(ASSIGNED)
+  startDate      DateTime?
+  endDate        DateTime?
+  notes          String?
+  supervisorId   Int? // para jerarquía dentro de la obra
+  assignedAt     DateTime           @default(now())
+
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  staff        StaffMember    @relation("StaffAssignments", fields: [staffId], references: [id], onDelete: Cascade)
+  supervisor   ProjectStaff?  @relation("ProjectStaffHierarchy", fields: [supervisorId], references: [id], onDelete: SetNull)
+  subordinates ProjectStaff[] @relation("ProjectStaffHierarchy")
+
+  @@unique([projectId, staffId])
+}
+
+// ---------------------------------------------------------------------------
+// Tasks (Tareas / Avance de obra)
+// ---------------------------------------------------------------------------
+
+enum TaskStatus {
+  PENDIENTE
+  EN_PROCESO
+  TERMINADA
+  ATRASADA
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  projectId   Int
+  title       String
+  description String?
+  status      TaskStatus @default(PENDIENTE)
+  stage       String? // e.g. "Cimientos", "Estructura"
+  startDate   DateTime?
+  endDate     DateTime?
+  completedAt DateTime?
+  progress    Int        @default(0) // 0-100
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Payments (Pagos / Cobros / Gastos)
+// ---------------------------------------------------------------------------
+
+enum PaymentType {
+  COBRO // money in (from client)
+  GASTO // money out (to supplier/staff/etc)
+}
+
+enum PaymentMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  CHEQUE
+  TARJETA
+  OTRO
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  type      PaymentType
+  method    PaymentMethod @default(EFECTIVO)
+  amount    Float
+  date      DateTime      @default(now())
+  reference String?
+  notes     String?
+  clientId  Int?
+  projectId Int?
+  createdAt DateTime      @default(now())
+
+  client  Client?  @relation(fields: [clientId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Client portal (sessions for read-only access to projects & payments)
+// ---------------------------------------------------------------------------
+
+model PortalSession {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id])
+}
